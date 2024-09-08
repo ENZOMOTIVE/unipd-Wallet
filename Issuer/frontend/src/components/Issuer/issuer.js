@@ -6,6 +6,8 @@ const Issuer = () => {
   const [degree, setDegree] = useState('');
   const [issuer, setIssuer] = useState('');
   const [issuedCredential, setIssuedCredential] = useState(null);
+  const [qrCodeUrl, setQrCodeUrl] = useState(null);
+  const [qrCodeData, setQrCodeData] = useState(''); // To store the QR code data
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -18,11 +20,22 @@ const Issuer = () => {
         issuer,
       });
 
-      // Store the issued JWT credential
+      // Store the issued JWT credential, QR code URL, and QR code data
       setIssuedCredential(response.data.credential);
+      setQrCodeUrl(response.data.qrCodeUrl);
+      setQrCodeData(response.data.credential); // Assuming QR code contains the JWT
+
+      console.log('QR Code URL:', response.data.qrCodeUrl); // Debugging line
     } catch (error) {
       console.error('Error issuing credential:', error);
     }
+  };
+
+  const handleCopyClick = () => {
+    // Copy QR code data to clipboard
+    navigator.clipboard.writeText(qrCodeData)
+      .then(() => alert('QR code data copied to clipboard!'))
+      .catch((error) => console.error('Error copying QR code data:', error));
   };
 
   return (
@@ -68,6 +81,13 @@ const Issuer = () => {
             readOnly
             style={{ width: '100%' }}
           />
+          {qrCodeUrl && (
+            <div>
+              <h2>QR Code:</h2>
+              <img src={qrCodeUrl} alt="QR Code" style={{ maxWidth: '100%', height: 'auto' }} />
+              <button onClick={handleCopyClick}>Copy QR Code Data</button>
+            </div>
+          )}
         </div>
       )}
     </div>
