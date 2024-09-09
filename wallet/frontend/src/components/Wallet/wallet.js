@@ -14,6 +14,11 @@ const Wallet = () => {
     setCredentials(storedCredentials);
   }, []);
 
+  // Function to check for duplicates before adding a new credential
+  const isDuplicateCredential = (newCredential) => {
+    return credentials.some(credential => credential.token === newCredential.token);
+  };
+
   // Function to handle credential decryption request
   const addCredential = async (jwtCredential) => {
     try {
@@ -21,8 +26,23 @@ const Wallet = () => {
         token: jwtCredential,
         password: password, // Password from the input field
       });
-      setDecryptedData(response.data.data); // Save the decrypted data
-      setError(null);  // Reset any errors
+
+      const decryptedCredential = { token: jwtCredential, data: response.data.data };
+
+      // Check if the credential already exists
+      if (!isDuplicateCredential(decryptedCredential)) {
+        const updatedCredentials = [...credentials, decryptedCredential];
+        setCredentials(updatedCredentials); // Add the new decrypted credential to the list
+        
+        // Save updated credentials to localStorage
+        localStorage.setItem('credentials', JSON.stringify(updatedCredentials));
+
+        setDecryptedData(decryptedCredential); // Save the decrypted data
+        setError(null);  // Reset any errors
+      } else {
+        setError('Duplicate credential detected!'); // Error for duplicate
+      }
+
     } catch (error) {
       // Handle different error cases
       if (error.response) {
@@ -43,6 +63,13 @@ const Wallet = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     addCredential(jwt); // Call the addCredential function on form submit
+  };
+
+  // Function to delete a credential
+  const deleteCredential = (index) => {
+    const updatedCredentials = credentials.filter((_, i) => i !== index);
+    setCredentials(updatedCredentials);
+    localStorage.setItem('credentials', JSON.stringify(updatedCredentials));
   };
 
   return (
@@ -67,13 +94,16 @@ const Wallet = () => {
       {/* Display error message if exists */}
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
-      {/* Display decrypted data if available */}
-      {decryptedData && (
-        <div>
-          <h2>Decrypted Data:</h2>
-          <pre>{JSON.stringify(decryptedData, null, 2)}</pre>
-        </div>
-      )}
+      <div className="cards-container">
+        {/* Map through credentials and display each in a card format */}
+        {credentials.map((credential, index) => (
+          <div className="card" key={index}>
+            <h3>Credential {index + 1}</h3>
+            <pre>{JSON.stringify(credential.data, null, 2)}</pre>
+            <button onClick={() => deleteCredential(index)} style={{ backgroundColor: 'red', color: 'white', padding: '8px', borderRadius: '5px', border: 'none' }}>Delete</button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
