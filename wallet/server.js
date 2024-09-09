@@ -8,7 +8,7 @@ const port = 3000;
 // Middleware
 app.use(express.json());
 app.use(cors({
-  origin: 'http://localhost:3001', // Allow requests from this origin
+  origin: '*', // Allow requests from any origin
   methods: 'GET,POST,PUT,DELETE', // Specify allowed methods
   allowedHeaders: 'Content-Type', // Specify allowed headers
 }));
