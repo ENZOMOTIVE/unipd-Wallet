@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { QrReader } from 'react-qr-reader';
 
-function Modal({ children, isOpen }) {
+function Modal({ children, isOpen, onClose }) {
   if (!isOpen) return null;
 
   return (
@@ -25,6 +25,7 @@ function Modal({ children, isOpen }) {
         width: '100%'
       }}>
         {children}
+        <button onClick={onClose} style={{ marginTop: '10px' }}>Close</button>
       </div>
     </div>
   );
@@ -74,7 +75,6 @@ function Wallet() {
       console.error('Error verifying password:', error);
       setError('Failed to verify password. Please try again.');
     }
-    setPassword(''); // Clear the password field after submission
   };
 
   const handleConfirmation = async (confirmed) => {
@@ -137,7 +137,7 @@ function Wallet() {
           constraints={{ facingMode: 'environment' }}
         />
       )}
-      <Modal isOpen={isPasswordModalOpen}>
+      <Modal isOpen={isPasswordModalOpen} onClose={() => setIsPasswordModalOpen(false)}>
         <h2>Authorization Required</h2>
         <form onSubmit={handlePasswordSubmit}>
           <input
@@ -149,7 +149,7 @@ function Wallet() {
           <button type="submit">Submit</button>
         </form>
       </Modal>
-      <Modal isOpen={isConfirmationModalOpen}>
+      <Modal isOpen={isConfirmationModalOpen} onClose={() => setIsConfirmationModalOpen(false)}>
         <h2>Confirm Credential Reception</h2>
         <p>Do you want to receive verifiable credentials from the Issuer: {issuerInfo}?</p>
         <button onClick={() => handleConfirmation(true)}>Confirm</button>
