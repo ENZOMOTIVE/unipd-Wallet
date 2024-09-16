@@ -1,37 +1,22 @@
+// Backend (server.js)
 const express = require('express');
-const jwt = require('jsonwebtoken');
-const cors = require('cors'); // Import CORS middleware
+const cors = require('cors');
 
 const app = express();
-const port = 3000;
+const port = 3002;
 
-// Middleware
 app.use(express.json());
-app.use(cors({
-  origin: '*', // Allow requests from any origin
-  methods: 'GET,POST,PUT,DELETE', // Specify allowed methods
-  allowedHeaders: 'Content-Type', // Specify allowed headers
-}));
+app.use(cors());
 
-const SECRET_KEY = '1234';
-
-// Route to decrypt JWT credential
-app.post('/decrypt', (req, res) => {
-  const { token, password } = req.body;
-
-  if (password !== SECRET_KEY) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
-  try {
-    const decoded = jwt.verify(token, SECRET_KEY);
-    res.json({ data: decoded });
-  } catch (error) {
-    res.status(400).json({ error: 'Invalid token' });
-  }
+// This endpoint is just for demonstration purposes
+// In a real application, credential storage would be more secure
+app.post('/store-credential', (req, res) => {
+  const { credential } = req.body;
+  // Here you would typically store the credential securely
+  console.log('Received credential:', credential);
+  res.json({ message: 'Credential stored successfully' });
 });
 
-// Start the server
 app.listen(port, () => {
-  console.log(`Decryption Service running on port ${port}`);
+  console.log(`Wallet backend running on http://localhost:${port}`);
 });

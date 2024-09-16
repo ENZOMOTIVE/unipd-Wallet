@@ -1,47 +1,88 @@
+// Backend (server.js)
 const express = require('express');
-const bodyParser = require('body-parser');
 const cors = require('cors');
-const jwt = require('jsonwebtoken');
-const QRCode = require('qrcode'); // Add this line to use QR Code library
+const { v4: uuidv4 } = require('uuid');
+const QRCode = require('qrcode');
 
 const app = express();
 const port = 3001;
 
-// Middleware
-app.use(bodyParser.json());
+app.use(express.json());
 app.use(cors());
 
-// Secret key for signing JWT
-const SECRET_KEY = '1234';
+const SECRET_KEY = '1234'; // This should be a secure, randomly generated key in production
 
-// Route to issue JWT credential
-app.post('/issue', async (req, res) => {
-  const { userId, degree, issuer } = req.body;
-
-  // Create the payload for the JWT
-  const payload = {
-    userId,
-    degree,
-    issuer,
-    issuedAt: new Date().toISOString(),
-  };
-
-  // Sign the JWT with a secret key
-  const token = jwt.sign(payload, SECRET_KEY, { expiresIn: '1h' });
-
-  try {
-    // Generate QR Code URL
-    const qrCodeUrl = await QRCode.toDataURL(token); // Generate QR code image as base64 URL
-
-    // Send the signed JWT and QR code URL back to the issuer
-    res.json({ credential: token, qrCodeUrl });
-  } catch (error) {
-    console.error('Error generating QR code:', error);
-    res.status(500).send('Error generating QR code');
-  }
+app.get('/.well-known/openid-credential-issuer', (req, res) => {
+  res.json({
+    issuer: 'http://localhost:3001',
+    token_endpoint: 'http://localhost:3001/token',
+    credential_endpoint: 'http://localhost:3001/credential',
+  });
 });
 
-// Start the server
+app.post('/create-offer', async (req, res) => {
+  const { userId, degree } = req.body;
+  
+  const preAuthorizedCode = uuidv4();
+  
+  const credentialOffer = {
+    credential_issuer: 'http://localhost:3001',
+    credentials: ['VerifiableCredential'],
+    grants: {
+      'urn:ietf:params:oauth:grant-type:pre-authorized_code': {
+        'pre-authorized_code': preAuthorizedCode,
+      }
+    }
+  };
+
+  const qrCodeData = JSON.stringify(credentialOffer);
+  const qrCodeUrl = await QRCode.toDataURL(qrCodeData);
+
+  res.json({ qrCodeUrl, credentialOffer });
+});
+
+app.post('/token', (req, res) => {
+  const { grant_type, pre_authorized_code } = req.body;
+  
+  if (grant_type !== 'urn:ietf:params:oauth:grant-type:pre-authorized_code') {
+    return res.status(400).json({ error: 'Invalid grant type' });
+  }
+
+  // In a real application, validate the pre-authorized code here
+
+  const accessToken = uuidv4();
+  res.json({ access_token: accessToken, token_type: 'Bearer' });
+});
+
+app.post('/credential', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Invalid authorization header' });
+  }
+
+  const accessToken = authHeader.split(' ')[1];
+  // In a real application, validate the access token here
+
+  const credential = {
+    '@context': [
+      'https://www.w3.org/2018/credentials/v1',
+      'https://www.w3.org/2018/credentials/examples/v1'
+    ],
+    type: ['VerifiableCredential', 'UniversityDegreeCredential'],
+    issuer: 'http://localhost:3001',
+    issuanceDate: new Date().toISOString(),
+    credentialSubject: {
+      id: 'did:example:ebfeb1f712ebc6f1c276e12ec21',
+      degree: {
+        type: 'BachelorDegree',
+        name: 'Bachelor of Science and Arts',
+      }
+    }
+  };
+
+  res.json(credential);
+});
+
 app.listen(port, () => {
-  console.log(`Issuer backend is running on http://localhost:${port}`);
+  console.log(`Issuer running on http://localhost:${port}`);
 });
