@@ -8,6 +8,7 @@ app.use(express.json());
 app.use(cors());
 
 const CORRECT_PASSWORD = '1234'; // In a real app, this would be stored securely
+let storedCredentials = []; // In-memory storage for credentials
 
 app.post('/verify-password', (req, res) => {
   const { password } = req.body;
@@ -21,7 +22,12 @@ app.post('/verify-password', (req, res) => {
 app.post('/store-credential', (req, res) => {
   const { credential } = req.body;
   console.log('Received credential:', credential);
+  storedCredentials.push(credential);
   res.json({ message: 'Credential stored successfully' });
+});
+
+app.get('/credentials', (req, res) => {
+  res.json(storedCredentials);
 });
 
 app.listen(port, () => {

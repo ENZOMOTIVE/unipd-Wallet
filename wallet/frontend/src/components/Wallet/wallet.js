@@ -46,7 +46,7 @@ function Wallet() {
     setCredentials(storedCredentials);
   }, []);
 
-  const handleScan = async (result) => {
+  const handleScan = (result) => {
     if (result) {
       setIsScanning(false);
       try {
@@ -107,9 +107,11 @@ function Wallet() {
 
       await axios.post('http://localhost:3002/store-credential', { credential: newCredential });
 
-      const updatedCredentials = [...credentials, newCredential];
-      setCredentials(updatedCredentials);
-      localStorage.setItem('credentials', JSON.stringify(updatedCredentials));
+      setCredentials(prevCredentials => {
+        const updatedCredentials = [...prevCredentials, newCredential];
+        localStorage.setItem('credentials', JSON.stringify(updatedCredentials));
+        return updatedCredentials;
+      });
 
       setError(null);
     } catch (error) {
@@ -119,9 +121,11 @@ function Wallet() {
   };
 
   const deleteCredential = (index) => {
-    const updatedCredentials = credentials.filter((_, i) => i !== index);
-    setCredentials(updatedCredentials);
-    localStorage.setItem('credentials', JSON.stringify(updatedCredentials));
+    setCredentials(prevCredentials => {
+      const updatedCredentials = prevCredentials.filter((_, i) => i !== index);
+      localStorage.setItem('credentials', JSON.stringify(updatedCredentials));
+      return updatedCredentials;
+    });
   };
 
   return (
@@ -133,7 +137,6 @@ function Wallet() {
       {isScanning && (
         <QrReader
           onResult={handleScan}
-          style={{ width: '100%' }}
           constraints={{ facingMode: 'environment' }}
         />
       )}
