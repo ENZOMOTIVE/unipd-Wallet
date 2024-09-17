@@ -1,62 +1,75 @@
-import React, { useState } from 'react';
-import { QRCodeCanvas } from 'qrcode.react'; // Use QRCodeCanvas for QR code generation
+import React, { useState, useEffect } from 'react';
+import { QRCodeCanvas } from 'qrcode.react';
 import axios from 'axios';
 
 const App = () => {
-  const [sessionId, setSessionId] = useState('session123'); // A sample session ID; you can dynamically generate it.
+  const [sessionId, setSessionId] = useState('');
   const [verificationResult, setVerificationResult] = useState(null);
-  const [verifiablePresentation, setVerifiablePresentation] = useState('');
+  const [qrCodeData, setQrCodeData] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Handle submission of the verifiable presentation
-  const handleSubmit = async () => {
+  useEffect(() => {
+    // Generate a new session and QR code data when the component mounts
+    generateSession();
+  }, []);
+
+  const generateSession = async () => {
     try {
-      const response = await axios.post('http://localhost:3000/verify', {
-        verifiablePresentation,
-        sessionId,
-      });
-      setVerificationResult(response.data.message);
+      const response = await axios.post('http://localhost:3004/create-session');
+      const { sessionId, authorizationRequest } = response.data;
+      setSessionId(sessionId);
+      setQrCodeData(JSON.stringify(authorizationRequest));
+      setIsLoading(false);
     } catch (error) {
-      setVerificationResult(
-        error.response ? error.response.data.error : 'Verification failed'
-      );
+      console.error('Error generating session:', error);
+      setIsLoading(false);
     }
+  };
+
+  const checkVerificationStatus = async () => {
+    try {
+      const response = await axios.get(`http://localhost:3004/verify-status/${sessionId}`);
+      if (response.data.status === 'completed') {
+        setVerificationResult(response.data.result);
+      } else {
+        // If not completed, check again after a short delay
+        setTimeout(checkVerificationStatus, 2000);
+      }
+    } catch (error) {
+      console.error('Error checking verification status:', error);
+    }
+  };
+
+  const handleScan = () => {
+    // Start checking for verification status
+    checkVerificationStatus();
   };
 
   return (
     <div style={{ textAlign: 'center', marginTop: '50px' }}>
       <h1>Verifier App</h1>
 
-      {/* QR Code Section */}
-      <div>
-        <p>Scan this QR code using your wallet to request credentials:</p>
-        {/* QRCodeCanvas component generates the QR code with the session data */}
-        <QRCodeCanvas value={JSON.stringify({ sessionId })} size={256} />
-      </div>
+      {isLoading ? (
+        <p>Loading...</p>
+      ) : (
+        <div>
+          <p>Scan this QR code using your wallet to share credentials:</p>
+          <QRCodeCanvas value={qrCodeData} size={256} />
+          <button onClick={handleScan} style={{ marginTop: '20px', padding: '10px 20px', fontSize: '18px' }}>
+            I've scanned the QR code
+          </button>
+        </div>
+      )}
 
-      {/* User Input for Verifiable Presentation */}
-      <div style={{ marginTop: '20px' }}>
-        <h2>Enter Verifiable Presentation</h2>
-        <textarea
-          value={verifiablePresentation}
-          onChange={(e) => setVerifiablePresentation(e.target.value)}
-          rows={10}
-          cols={50}
-          placeholder="Paste verifiable presentation here..."
-          style={{ padding: '10px', fontSize: '16px' }}
-        />
-      </div>
-
-      {/* Submit Button */}
-      <div style={{ marginTop: '20px' }}>
-        <button onClick={handleSubmit} style={{ padding: '10px 20px', fontSize: '18px' }}>
-          Verify
-        </button>
-      </div>
-
-      {/* Display the verification result */}
       {verificationResult && (
-        <div style={{ marginTop: '20px', color: verificationResult.includes('valid') ? 'green' : 'red' }}>
-          <h2>{verificationResult}</h2>
+        <div style={{ marginTop: '20px', color: verificationResult.isValid ? 'green' : 'red' }}>
+          <h2>{verificationResult.isValid ? 'Verification Successful' : 'Verification Failed'}</h2>
+          {verificationResult.sharedCredentials && (
+            <div>
+              <h3>Shared Credentials:</h3>
+              <pre>{JSON.stringify(verificationResult.sharedCredentials, null, 2)}</pre>
+            </div>
+          )}
         </div>
       )}
     </div>
