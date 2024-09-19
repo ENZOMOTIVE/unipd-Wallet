@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './Issuer.css';
 
+const base_url= "https://unipd-wallet.onrender.com";
+
 const credentialTypes = {
   'UniversityDegree': ['name', 'degreeType', 'university', 'graduationDate'],
   'DriverLicense': ['name', 'licenseNumber', 'issueDate', 'expiryDate'],
@@ -35,7 +37,7 @@ export default function Issuer() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const response = await axios.post('http://localhost:3001/create-offer', {
+      const response = await axios.post(`${base_url}/create-offer`, {
         userId,
         credentialType,
         credentialFields
