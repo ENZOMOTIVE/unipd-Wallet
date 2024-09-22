@@ -13,6 +13,7 @@
     "axios": "^1.7.7",
     "cors": "^2.8.5",
     "express": "^4.19.2",
+    "jose": "^5.9.2",
     "jsonwebtoken": "^9.0.2",
     "qrcode": "^1.5.4",
     "qrcode.react": "^4.0.1"

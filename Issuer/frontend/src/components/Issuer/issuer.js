@@ -2,7 +2,11 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './Issuer.css';
 
-const base_url= "https://unipd-wallet.onrender.com";
+// The backend API deployed on render
+// const base_url= "https://unipd-wallet.onrender.com";
+
+//The backend when hosted on local server
+const local_server="http://localhost:3001";
 
 const credentialTypes = {
   'UniversityDegree': ['name', 'degreeType', 'university', 'graduationDate'],
@@ -37,16 +41,20 @@ export default function Issuer() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const response = await axios.post(`${base_url}/create-offer`, {
+      const response = await axios.post(`${local_server}/create-offer`, {
         userId,
         credentialType,
         credentialFields
       });
-      setQrCodeUrl(response.data.qrCodeUrl);
-      setError(null);
+      if (response.data.qrCodeUrl) {
+        setQrCodeUrl(response.data.qrCodeUrl);
+        setError(null);
+      } else {
+        throw new Error('QR code URL not received');
+      }
     } catch (error) {
       console.error('Error creating credential offer:', error);
-      setError('Failed to create credential offer. Please try again.');
+      setError(error.response?.data?.error || 'Failed to create credential offer. Please try again.');
     } finally {
       setIsLoading(false);
     }

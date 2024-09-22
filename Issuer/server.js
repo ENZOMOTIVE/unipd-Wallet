@@ -2,43 +2,71 @@ const express = require('express');
 const cors = require('cors');
 const { v4: uuidv4 } = require('uuid');
 const QRCode = require('qrcode');
+const jose = require('jose');
+const crypto = require('crypto');
 
 const app = express();
 const port = 3001;
 
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://localhost:3003'],
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json());
-app.use(cors());
 
-const SECRET_KEY = '1234'; // This should be a secure, randomly generated key in production
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.originalUrl}`);
+  next();
+});
 
-// Initialize pendingCredentials
-app.locals.pendingCredentials = {};
+const issuerKeyPair = crypto.generateKeyPairSync('ed25519');
+const issuerDid = `did:example:${uuidv4()}`;
+
+// In-memory storage for demo purposes. In a real application, use a database.
+const issuedTokens = new Set();
+const credentialOffers = new Map();
 
 app.get('/.well-known/openid-credential-issuer', (req, res) => {
   res.json({
-    issuer: 'http://localhost:3001',
-    token_endpoint: 'http://localhost:3001/token',
-    credential_endpoint: 'http://localhost:3001/credential',
+    issuer: `http://localhost:${port}`,
+    authorization_endpoint: `http://localhost:${port}/authorize`,
+    token_endpoint: `http://localhost:${port}/token`,
+    credential_endpoint: `http://localhost:${port}/credential`,
+    jwks_uri: `http://localhost:${port}/jwks`,
+    credential_issuer: `http://localhost:${port}`,
+    credentials_supported: [
+      {
+        format: 'jwt_vc',
+        types: ['VerifiableCredential', 'UniversityDegreeCredential']
+      }
+    ]
+  });
+});
+
+app.get('/jwks', (req, res) => {
+  const jwk = jose.exportJWK(issuerKeyPair.publicKey);
+  res.json({
+    keys: [{ ...jwk, kid: 'issuer-key-1', use: 'sig', alg: 'EdDSA' }]
   });
 });
 
 app.post('/create-offer', async (req, res) => {
   const { userId, credentialType, credentialFields } = req.body;
-
-  const preAuthorizedCode = uuidv4();
-
+  const offerId = uuidv4();
+  
   const credentialOffer = {
-    credential_issuer: 'http://localhost:3001',
-    credentials: ['VerifiableCredential'],
+    credential_issuer: `http://localhost:${port}`,
+    credentials: [credentialType],
     grants: {
       'urn:ietf:params:oauth:grant-type:pre-authorized_code': {
-        'pre-authorized_code': preAuthorizedCode,
+        'pre-authorized_code': offerId,
       }
     }
   };
 
-  // Store the credential details for later use
-  app.locals.pendingCredentials[preAuthorizedCode] = { userId, credentialType, credentialFields };
+  credentialOffers.set(offerId, { userId, credentialType, credentialFields });
 
   try {
     const qrCodeData = JSON.stringify(credentialOffer);
@@ -57,63 +85,86 @@ app.post('/token', (req, res) => {
     return res.status(400).json({ error: 'Invalid grant type' });
   }
 
-  // In a real application, validate the pre-authorized code here
+  if (!credentialOffers.has(pre_authorized_code)) {
+    return res.status(400).json({ error: 'Invalid pre-authorized code' });
+  }
 
   const accessToken = uuidv4();
-  res.json({ access_token: accessToken, token_type: 'Bearer' });
+  issuedTokens.add(accessToken);
+
+  res.json({
+    access_token: accessToken,
+    token_type: 'Bearer',
+    expires_in: 3600,
+    c_nonce: uuidv4(),
+    c_nonce_expires_in: 3600
+  });
 });
 
-app.post('/credential', (req, res) => {
+app.post('/credential', async (req, res) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Invalid authorization header' });
   }
 
   const accessToken = authHeader.split(' ')[1];
-  // In a real application, validate the access token here
+  if (!issuedTokens.has(accessToken)) {
+    return res.status(401).json({ error: 'Invalid access token' });
+  }
+
+  const { format, proof } = req.body;
+
+  if (format !== 'jwt_vc') {
+    return res.status(400).json({ error: 'Unsupported credential format' });
+  }
+
+  // In a real implementation, verify the proof here
 
   try {
-    // Retrieve the pending credential details
-    const pendingCredentials = app.locals.pendingCredentials;
-    if (!pendingCredentials || Object.keys(pendingCredentials).length === 0) {
-      return res.status(404).json({ error: 'No pending credentials found' });
-    }
+    const offerData = Array.from(credentialOffers.values())[0]; // For demo, just use the first offer
+    const { userId, credentialType, credentialFields } = offerData;
 
-    // This is a simplified example. In a real application, you'd use the access token to identify the correct credential
-    const pendingCredential = Object.values(pendingCredentials)[0];
+    const credentialId = `http://localhost:${port}/credentials/${uuidv4()}`;
+    const issuanceDate = new Date().toISOString();
+    const expirationDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(); // 1 year from now
 
-    if (!pendingCredential) {
-      return res.status(404).json({ error: 'Credential not found' });
-    }
-
-    const { userId, credentialType, credentialFields } = pendingCredential;
-
-    const credential = {
+    const credentialPayload = {
       '@context': [
         'https://www.w3.org/2018/credentials/v1',
         'https://www.w3.org/2018/credentials/examples/v1'
       ],
-      type: ['VerifiableCredential', `${credentialType}Credential`],
-      issuer: 'http://localhost:3001',
-      issuanceDate: new Date().toISOString(),
+      id: credentialId,
+      type: ['VerifiableCredential', credentialType],
+      issuer: issuerDid,
+      issuanceDate: issuanceDate,
+      expirationDate: expirationDate,
       credentialSubject: {
-        id: userId,
+        id: `did:example:${userId}`,
         ...credentialFields
       }
     };
 
-    res.json(credential);
+    const jwt = await new jose.SignJWT(credentialPayload)
+      .setProtectedHeader({ alg: 'EdDSA', typ: 'JWT', kid: 'issuer-key-1' })
+      .setJti(credentialId)
+      .setIssuedAt()
+      .setIssuer(issuerDid)
+      .setSubject(credentialPayload.credentialSubject.id)
+      .setAudience(credentialPayload.credentialSubject.id)
+      .setExpirationTime('1y')
+      .sign(issuerKeyPair.privateKey);
+
+    issuedTokens.delete(accessToken); // Remove the used token
+    credentialOffers.clear(); // Clear the offer after issuance
+
+    res.json({ format: 'jwt_vc', credential: jwt });
+
   } catch (error) {
     console.error('Error generating credential:', error);
     res.status(500).json({ error: 'Failed to generate credential' });
   }
 });
 
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
-});
-
 app.listen(port, () => {
-  console.log(`Issuer running on http://localhost:${port}`);
+  console.log(`OID4VCI Issuer running on http://localhost:${port}`);
 });
