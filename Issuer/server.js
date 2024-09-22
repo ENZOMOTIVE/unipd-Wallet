@@ -23,6 +23,7 @@ app.use((req, res, next) => {
 
 const issuerKeyPair = crypto.generateKeyPairSync('ed25519');
 const issuerDid = `did:example:${uuidv4()}`;
+const FIXED_PUBLIC_KEY = '1234';
 
 // In-memory storage for demo purposes. In a real application, use a database.
 const issuedTokens = new Set();
@@ -144,25 +145,37 @@ app.post('/credential', async (req, res) => {
       }
     };
 
+    const proof = {
+      type: 'Ed25519Signature2020',
+      created: new Date().toISOString(),
+      verificationMethod: `${issuerDid}#keys-1`,
+      proofPurpose: 'assertionMethod',
+      proofValue: crypto.createHmac('sha256', FIXED_PUBLIC_KEY)
+                       .update(JSON.stringify(credentialPayload))
+                       .digest('hex')
+    };
+
+    credentialPayload.proof = proof;
+
     const jwt = await new jose.SignJWT(credentialPayload)
-      .setProtectedHeader({ alg: 'EdDSA', typ: 'JWT', kid: 'issuer-key-1' })
-      .setJti(credentialId)
-      .setIssuedAt()
-      .setIssuer(issuerDid)
-      .setSubject(credentialPayload.credentialSubject.id)
-      .setAudience(credentialPayload.credentialSubject.id)
-      .setExpirationTime('1y')
-      .sign(issuerKeyPair.privateKey);
+    .setProtectedHeader({ alg: 'EdDSA', typ: 'JWT', kid: 'issuer-key-1' })
+    .setJti(credentialId)
+    .setIssuedAt()
+    .setIssuer(issuerDid)
+    .setSubject(credentialPayload.credentialSubject.id)
+    .setAudience(credentialPayload.credentialSubject.id)
+    .setExpirationTime('1y')
+    .sign(issuerKeyPair.privateKey);
 
-    issuedTokens.delete(accessToken); // Remove the used token
-    credentialOffers.clear(); // Clear the offer after issuance
+  issuedTokens.delete(accessToken); // Remove the used token
+  credentialOffers.clear(); // Clear the offer after issuance
 
-    res.json({ format: 'jwt_vc', credential: jwt });
+  res.json({ format: 'jwt_vc', credential: jwt });
 
-  } catch (error) {
-    console.error('Error generating credential:', error);
-    res.status(500).json({ error: 'Failed to generate credential' });
-  }
+} catch (error) {
+  console.error('Error generating credential:', error);
+  res.status(500).json({ error: 'Failed to generate credential' });
+}
 });
 
 app.listen(port, () => {

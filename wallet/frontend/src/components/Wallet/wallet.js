@@ -3,6 +3,8 @@ import axios from 'axios';
 import { QrReader } from 'react-qr-reader';
 import { jwtDecode } from 'jwt-decode';
 
+const FIXED_PUBLIC_KEY = '1234';
+
 export default function Wallet() {
   const [credentials, setCredentials] = useState([]);
   const [isScanning, setIsScanning] = useState(false);
@@ -39,6 +41,16 @@ export default function Wallet() {
       await processCredentialOffer(scannedOffer);
     }
     setScannedOffer(null);
+  };
+  const verifyProof = (credential) => {
+    if (!credential.proof) {
+      return false;
+    }
+    const { proof, ...credentialWithoutProof } = credential;
+    const calculatedProof = crypto.createHmac('sha256', FIXED_PUBLIC_KEY)
+      .update(JSON.stringify(credentialWithoutProof))
+      .digest('hex');
+    return calculatedProof === proof.proofValue;
   };
 
   const processCredentialOffer = async (credentialOffer) => {
@@ -112,6 +124,18 @@ export default function Wallet() {
           <p>Expires At: {decodedCredential.exp ? new Date(decodedCredential.exp * 1000).toLocaleString() : 'Unknown'}</p>
           <h5>Credential Subject:</h5>
           <pre>{JSON.stringify(decodedCredential.credentialSubject, null, 2)}</pre>
+          <h5>Proof:</h5>
+          {decodedCredential.proof ? (
+            <div>
+              <p>Type: {decodedCredential.proof.type}</p>
+              <p>Created: {decodedCredential.proof.created}</p>
+              <p>Verification Method: {decodedCredential.proof.verificationMethod}</p>
+              <p>Proof Purpose: {decodedCredential.proof.proofPurpose}</p>
+              <p>Proof Value: {decodedCredential.proof.proofValue}</p>
+            </div>
+          ) : (
+            <p>No proof available</p>
+          )}
         </div>
       );
     } catch (error) {
@@ -126,6 +150,7 @@ export default function Wallet() {
       );
     }
   };
+
 
   return (
     <div className="wallet-container">
