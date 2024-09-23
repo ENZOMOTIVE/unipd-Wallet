@@ -13,6 +13,7 @@ function Wallet() {
   const [scannedOffer, setScannedOffer] = useState(null);
   const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
   const [issuerInfo, setIssuerInfo] = useState('');
+  const [expandedCredential, setExpandedCredential] = useState(null);
 
   useEffect(() => {
     const storedCredentials = JSON.parse(localStorage.getItem('credentials')) || [];
@@ -108,46 +109,79 @@ function Wallet() {
       localStorage.setItem('credentials', JSON.stringify(updatedCredentials));
       return updatedCredentials;
     });
+    setExpandedCredential(null);
   };
 
-  const renderCredential = (jwtCredential) => {
+  const renderCredentialCard = (jwtCredential, index) => {
     try {
       const decodedCredential = jwtDecode(jwtCredential);
-
-      if (!decodedCredential.type || !decodedCredential.credentialSubject) {
-        throw new Error('Credential does not have the expected structure');
-      }
+      const credentialType = Array.isArray(decodedCredential.type) 
+        ? decodedCredential.type.find(t => t !== 'VerifiableCredential') 
+        : decodedCredential.type;
 
       return (
-        <div className="credential-card">
-          <h4>{Array.isArray(decodedCredential.type) ? decodedCredential.type.join(', ') : decodedCredential.type}</h4>
+        <div 
+          key={index} 
+          className="credential-card" 
+          onClick={() => setExpandedCredential(index)}
+        >
+          <h3>{credentialType || 'Unknown Credential'}</h3>
           <p>Issuer: {decodedCredential.iss || 'Unknown'}</p>
-          <p>Issued At: {decodedCredential.iat ? new Date(decodedCredential.iat * 1000).toLocaleString() : 'Unknown'}</p>
-          <p>Expires At: {decodedCredential.exp ? new Date(decodedCredential.exp * 1000).toLocaleString() : 'Unknown'}</p>
-          <h5>Credential Subject:</h5>
-          <pre>{JSON.stringify(decodedCredential.credentialSubject, null, 2)}</pre>
-          <h5>Proof:</h5>
-          {decodedCredential.proof ? (
-            <div>
-              <p>Type: {decodedCredential.proof.type}</p>
-              <p>Created: {decodedCredential.proof.created}</p>
-              <p>Verification Method: {decodedCredential.proof.verificationMethod}</p>
-              <p>Proof Purpose: {decodedCredential.proof.proofPurpose}</p>
-              <p>Proof Value: {decodedCredential.proof.proofValue}</p>
-            </div>
-          ) : (
-            <p>No proof available</p>
-          )}
+          <button 
+            onClick={(e) => { e.stopPropagation(); deleteCredential(index); }} 
+            className="delete-button"
+          >
+            Delete
+          </button>
         </div>
       );
     } catch (error) {
       console.error('Error decoding credential:', error);
       return (
-        <div className="credential-card error">
-          <h4>Error Decoding Credential</h4>
+        <div key={index} className="credential-card error">
+          <h3>Error Decoding Credential</h3>
+          <p>Details: {error.message}</p>
+        </div>
+      );
+    }
+  };
+
+  const renderExpandedCredential = (jwtCredential) => {
+    try {
+      const decodedCredential = jwtDecode(jwtCredential);
+
+      return (
+        <div className="expanded-credential">
+          <h2>{Array.isArray(decodedCredential.type) ? decodedCredential.type.join(', ') : decodedCredential.type}</h2>
+          <p><strong>Issuer:</strong> {decodedCredential.iss || 'Unknown'}</p>
+          <p><strong>Issued At:</strong> {decodedCredential.iat ? new Date(decodedCredential.iat * 1000).toLocaleString() : 'Unknown'}</p>
+          <p><strong>Expires At:</strong> {decodedCredential.exp ? new Date(decodedCredential.exp * 1000).toLocaleString() : 'Unknown'}</p>
+          <h3>Credential Subject:</h3>
+          <pre>{JSON.stringify(decodedCredential.credentialSubject, null, 2)}</pre>
+          <h3>Proof:</h3>
+          {decodedCredential.proof ? (
+            <div>
+              <p><strong>Type:</strong> {decodedCredential.proof.type}</p>
+              <p><strong>Created:</strong> {decodedCredential.proof.created}</p>
+              <p><strong>Verification Method:</strong> {decodedCredential.proof.verificationMethod}</p>
+              <p><strong>Proof Purpose:</strong> {decodedCredential.proof.proofPurpose}</p>
+              <p><strong>Proof Value:</strong> {decodedCredential.proof.proofValue}</p>
+            </div>
+          ) : (
+            <p>No proof available</p>
+          )}
+          <button onClick={() => setExpandedCredential(null)} className="close-button">Close</button>
+        </div>
+      );
+    } catch (error) {
+      console.error('Error decoding credential:', error);
+      return (
+        <div className="expanded-credential error">
+          <h2>Error Decoding Credential</h2>
           <p>Details: {error.message}</p>
           <p>Raw JWT:</p>
           <pre>{jwtCredential}</pre>
+          <button onClick={() => setExpandedCredential(null)} className="close-button">Close</button>
         </div>
       );
     }
@@ -178,13 +212,7 @@ function Wallet() {
               <p>No credentials yet. Scan a QR code to add a credential.</p>
             </div>
           ) : (
-            credentials.map((jwtCredential, index) => (
-              <div key={index} className="credential-item">
-                <h3>Credential {index + 1}</h3>
-                {renderCredential(jwtCredential)}
-                <button onClick={() => deleteCredential(index)} className="delete-button">Delete</button>
-              </div>
-            ))
+            credentials.map((jwtCredential, index) => renderCredentialCard(jwtCredential, index))
           )}
         </div>
       </main>
@@ -197,6 +225,13 @@ function Wallet() {
               <button onClick={() => handleConfirmation(true)}>Yes</button>
               <button onClick={() => handleConfirmation(false)}>No</button>
             </div>
+          </div>
+        </div>
+      )}
+      {expandedCredential !== null && (
+        <div className="modal">
+          <div className="modal-content expanded-credential-modal">
+            {renderExpandedCredential(credentials[expandedCredential])}
           </div>
         </div>
       )}
