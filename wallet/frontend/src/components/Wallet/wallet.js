@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { QrReader } from 'react-qr-reader';
 import { jwtDecode } from 'jwt-decode';
+import './wallet.css';
 
 const FIXED_PUBLIC_KEY = '1234';
 

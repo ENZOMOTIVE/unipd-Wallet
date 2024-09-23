@@ -1,97 +1,118 @@
+/* styles.css - Updated Complex and Cool Styling */
 .wallet-container {
-  max-width: 800px;
+  max-width: 400px;
   margin: 0 auto;
   padding: 20px;
   font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #003399 0%, #0055cc 100%);
+  color: white;
+  border-radius: 20px;
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+  border: 2px solid #00287a;
+}
+
+.wallet-header {
+  text-align: center;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #FFD700;
+  padding-bottom: 10px;
+}
+
+.eu-stars {
+  font-size: 24px;
+  letter-spacing: 3px;
+  margin-bottom: 10px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 26px;
 }
 
 .scan-button {
-  background-color: #4CAF50;
-  color: white;
-  padding: 10px 20px;
+  background: linear-gradient(135deg, #FFD700 0%, #FFCC00 100%);
+  color: #003399;
+  padding: 12px 25px;
   border: none;
-  border-radius: 5px;
+  border-radius: 30px;
   cursor: pointer;
   font-size: 16px;
+  font-weight: bold;
   margin-bottom: 20px;
+  width: 100%;
+  transition: background 0.3s ease;
+}
+
+.scan-button:hover {
+  background: linear-gradient(135deg, #FFCC00 0%, #FFD700 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 }
 
 .qr-reader {
   width: 100%;
-  max-width: 500px;
+  max-width: 300px;
   margin: 0 auto;
+  border: 2px dashed #FFD700;
+  padding: 10px;
+  border-radius: 15px;
 }
 
 .credentials-list {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 15px;
 }
 
 .credential-item {
-  border: 1px solid #ddd;
-  border-radius: 5px;
+  background: linear-gradient(135deg, #fff 0%, #f3f3f3 100%);
+  color: #003399;
+  border-radius: 10px;
   padding: 15px;
-  background-color: #f9f9f9;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  border: 1px solid #ddd;
+  transition: box-shadow 0.3s ease;
 }
 
-.credential-card {
-  margin-top: 10px;
+.credential-item:hover {
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
 }
 
-.credential-card.error {
-  background-color: #ffebee;
-  border: 1px solid #ffcdd2;
-  padding: 10px;
-  border-radius: 5px;
+.credential-item h3 {
+  margin: 0 0 10px 0;
+  font-size: 18px;
+  color: #00287a;
+}
+
+.credential-item p {
+  margin: 5px 0;
+  font-size: 14px;
+  color: #0044cc;
 }
 
 .delete-button {
-  background-color: #f44336;
+  background: linear-gradient(135deg, #FF4136 0%, #E63946 100%);
   color: white;
-  padding: 5px 10px;
+  padding: 6px 12px;
   border: none;
-  border-radius: 3px;
+  border-radius: 5px;
   cursor: pointer;
   margin-top: 10px;
+  font-size: 14px;
+  transition: background 0.3s ease;
+}
+
+.delete-button:hover {
+  background: linear-gradient(135deg, #E63946 0%, #FF4136 100%);
 }
 
 .error-message {
-  color: #f44336;
+  color: #FF4136;
   font-weight: bold;
-}
-
-pre {
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  background-color: #f1f1f1;
-  padding: 10px;
-  border-radius: 5px;
-  font-size: 14px;
-}
-
-h1 {
-  color: #333;
   text-align: center;
-}
-
-h3 {
-  color: #444;
-  margin-bottom: 10px;
-}
-
-h4 {
-  color: #555;
-  margin-top: 0;
-}
-
-h5 {
-  color: #666;
-  margin-bottom: 5px;
-}
-
-p {
-  margin: 5px 0;
+  padding: 10px;
+  background-color: rgba(255, 65, 54, 0.1);
+  border-radius: 5px;
 }
 
 .modal {
@@ -99,23 +120,36 @@ p {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background-color: white;
-  padding: 20px;
-  border-radius: 5px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, #fff 0%, #f3f3f3 100%);
+  color: #003399;
+  padding: 25px;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
   z-index: 1000;
+  width: 80%;
+  max-width: 500px;
+  border: 2px solid #00287a;
 }
 
 .modal h2 {
   margin-top: 0;
+  color: #003399;
+  text-align: center;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
 }
 
 .modal button {
-  margin: 10px 5px 0 0;
-  padding: 5px 10px;
+  padding: 8px 20px;
   border: none;
-  border-radius: 3px;
+  border-radius: 5px;
   cursor: pointer;
+  font-size: 16px;
+  transition: background 0.3s ease;
 }
 
 .modal button:first-of-type {
@@ -123,7 +157,15 @@ p {
   color: white;
 }
 
+.modal button:first-of-type:hover {
+  background-color: #45A049;
+}
+
 .modal button:last-of-type {
-  background-color: #f44336;
+  background-color: #FF4136;
   color: white;
+}
+
+.modal button:last-of-type:hover {
+  background-color: #E63946;
 }
