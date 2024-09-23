@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { QrReader } from 'react-qr-reader';
 import { jwtDecode } from 'jwt-decode';
+import axios from 'axios';
 import './wallet.css';
 
 const FIXED_PUBLIC_KEY = '1234';
 
-export default function Wallet() {
+function Wallet() {
   const [credentials, setCredentials] = useState([]);
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState(null);
@@ -43,6 +43,7 @@ export default function Wallet() {
     }
     setScannedOffer(null);
   };
+
   const verifyProof = (credential) => {
     if (!credential.proof) {
       return false;
@@ -152,38 +153,59 @@ export default function Wallet() {
     }
   };
 
-
   return (
     <div className="wallet-container">
-      <h1>My OID4VCI Wallet</h1>
-      {!isScanning && (
-        <button onClick={() => setIsScanning(true)} className="scan-button">Scan QR Code</button>
-      )}
-      {isScanning && (
-        <QrReader
-          onResult={handleScan}
-          constraints={{ facingMode: 'environment' }}
-          className="qr-reader"
-        />
-      )}
+      <header className="wallet-header">
+        <div className="eu-stars">★★★★★</div>
+        <h1>Digital Credential Wallet</h1>
+      </header>
+      <main className="wallet-content">
+        {!isScanning && (
+          <button onClick={() => setIsScanning(true)} className="scan-button">Scan QR Code</button>
+        )}
+        {isScanning && (
+          <QrReader
+            onResult={handleScan}
+            constraints={{ facingMode: 'environment' }}
+            className="qr-reader"
+          />
+        )}
+        {error && <p className="error-message">{error}</p>}
+        <div className="credentials-list">
+          {credentials.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-state-icon">📂</div>
+              <p>No credentials yet. Scan a QR code to add a credential.</p>
+            </div>
+          ) : (
+            credentials.map((jwtCredential, index) => (
+              <div key={index} className="credential-item">
+                <h3>Credential {index + 1}</h3>
+                {renderCredential(jwtCredential)}
+                <button onClick={() => deleteCredential(index)} className="delete-button">Delete</button>
+              </div>
+            ))
+          )}
+        </div>
+      </main>
       {isConfirmationModalOpen && (
         <div className="modal">
-          <h2>Confirm Credential Reception</h2>
-          <p>Do you want to receive a credential from {issuerInfo}?</p>
-          <button onClick={() => handleConfirmation(true)}>Yes</button>
-          <button onClick={() => handleConfirmation(false)}>No</button>
+          <div className="modal-content">
+            <h2>Confirm Credential Reception</h2>
+            <p>Do you want to receive a credential from {issuerInfo}?</p>
+            <div className="modal-buttons">
+              <button onClick={() => handleConfirmation(true)}>Yes</button>
+              <button onClick={() => handleConfirmation(false)}>No</button>
+            </div>
+          </div>
         </div>
       )}
-      {error && <p className="error-message">{error}</p>}
-      <div className="credentials-list">
-        {credentials.map((jwtCredential, index) => (
-          <div key={index} className="credential-item">
-            <h3>Credential {index + 1}</h3>
-            {renderCredential(jwtCredential)}
-            <button onClick={() => deleteCredential(index)} className="delete-button">Delete</button>
-          </div>
-        ))}
-      </div>
+      <footer className="wallet-footer">
+        <p>© 2024 Digital Credential Wallet. All rights reserved.</p>
+        <p>Made with ❤️ by Aayushman</p>
+      </footer>
     </div>
   );
 }
+
+export default Wallet;
