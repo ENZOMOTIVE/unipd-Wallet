@@ -190,8 +190,6 @@ function Wallet() {
   return (
     <div className="wallet-container">
       <header className="wallet-header">
-        <div className="eu-stars">★★★★★</div>
-        <h1>Digital Credential Wallet</h1>
       </header>
       <main className="wallet-content">
         {!isScanning && (
@@ -235,10 +233,7 @@ function Wallet() {
           </div>
         </div>
       )}
-      <footer className="wallet-footer">
-        <p>© 2024 Digital Credential Wallet. All rights reserved.</p>
-        <p>Made with ❤️ by Aayushman</p>
-      </footer>
+      
     </div>
   );
 }

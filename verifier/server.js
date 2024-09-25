@@ -6,7 +6,7 @@ const { v4: uuidv4 } = require('uuid');
 const { verifyPresentation } = require('./oid4vp-utils');
 
 const app = express();
-const port = 3004;
+const port = 3003;
 
 app.use(express.json());
 app.use(cors());
