@@ -1,106 +1,127 @@
-// server.js
 const express = require('express');
 const cors = require('cors');
-const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
-const { verifyPresentation } = require('./oid4vp-utils');
+const jose = require('jose');
+const crypto = require('crypto');
 
 const app = express();
-const port = 3003;
+const port = 3006;
+
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://localhost:3004', 'http://localhost:3005'],
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 app.use(express.json());
-app.use(cors());
 
-const sessions = {};
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.originalUrl}`);
+  next();
+});
 
-const credentialTypes = [
-  'UniversityDegreeCredential',
-  'DriverLicenseCredential',
-  'PIDCredential',
-  'ResidenceCertificateCredential'
-];
+const verifierKeyPair = crypto.generateKeyPairSync('ed25519');
+const verifierDid = `did:example:verifier${uuidv4()}`;
 
-app.post('/create-session', (req, res) => {
-  const { selectedCredentials } = req.body;
-  const sessionId = uuidv4();
-  const nonce = crypto.randomBytes(16).toString('hex');
+const activeRequests = new Map();
 
-  const authorizationRequest = {
+app.get('/jwks', (req, res) => {
+  const jwk = jose.exportJWK(verifierKeyPair.publicKey);
+  res.json({
+    keys: [{ ...jwk, kid: 'verifier-key-1', use: 'sig', alg: 'EdDSA' }]
+  });
+});
+
+app.post('/generate-request', async (req, res) => {
+  const { credentialType } = req.body;
+  const nonce = uuidv4();
+  const state = uuidv4();
+
+  const presentationDefinition = {
+    id: uuidv4(),
+    input_descriptors: [
+      {
+        id: 'credential_request',
+        name: credentialType,
+        purpose: `Please provide your ${credentialType} credential`,
+        constraints: {
+          fields: [
+            {
+              path: ['$.type'],
+              filter: {
+                type: 'string',
+                pattern: credentialType
+              }
+            }
+          ]
+        }
+      }
+    ]
+  };
+
+  const request = {
     response_type: 'vp_token',
     response_mode: 'direct_post',
-    client_id: `http://localhost:${port}/present`,
-    redirect_uri: `http://localhost:${port}/present`,
-    scope: 'openid',
+    client_id: `http://localhost:${port}/callback`,
+    redirect_uri: `http://localhost:${port}/callback`,
+    presentation_definition: presentationDefinition,
     nonce: nonce,
-    presentation_definition: {
-      id: sessionId,
-      input_descriptors: selectedCredentials.map(credType => ({
-        id: credType,
-        schema: [{ uri: 'https://www.w3.org/2018/credentials/examples/v1' }],
-        constraints: {
-          fields: [{ 
-            path: ['$.type'], 
-            filter: { 
-              type: 'string', 
-              pattern: credType 
-            } 
-          }]
-        }
-      }))
+    state: state
+  };
+
+  activeRequests.set(state, { nonce, credentialType });
+
+  const jwt = await new jose.SignJWT(request)
+    .setProtectedHeader({ alg: 'EdDSA', typ: 'JWT', kid: 'verifier-key-1' })
+    .setIssuedAt()
+    .setIssuer(verifierDid)
+    .setAudience('https://self-issued.me/v2')
+    .setExpirationTime('5m')
+    .sign(verifierKeyPair.privateKey);
+
+  res.json({ request: jwt });
+});
+
+app.post('/callback', async (req, res) => {
+  const { vp_token, state } = req.body;
+
+  if (!activeRequests.has(state)) {
+    return res.status(400).json({ error: 'Invalid state' });
+  }
+
+  const { nonce, credentialType } = activeRequests.get(state);
+  activeRequests.delete(state);
+
+  try {
+    // Verify the JWT signature
+    const secretKey = new TextEncoder().encode('your-secret-key');
+    const { payload } = await jose.jwtVerify(vp_token, secretKey, {
+      algorithms: ['HS256']
+    });
+
+    // Verify nonce
+    if (payload.nonce !== nonce) {
+      throw new Error('Invalid nonce');
     }
-  };
 
-  sessions[sessionId] = { 
-    nonce, 
-    status: 'pending', 
-    authorizationRequest 
-  };
+    // Verify credential type
+    const vc = payload.vp.verifiableCredential[0];
+    const decodedVc = jose.decodeJwt(vc);
+    if (!decodedVc.type.includes(credentialType)) {
+      throw new Error('Invalid credential type');
+    }
 
-  const qrCodeData = JSON.stringify({
-    url: `openid-vc://?request_uri=http://localhost:${port}/authorization-request/${sessionId}`,
-    sessionId: sessionId
-  });
-
-  res.json({ sessionId, qrCodeData });
-});
-
-app.get('/authorization-request/:sessionId', (req, res) => {
-  const { sessionId } = req.params;
-  if (!sessions[sessionId]) {
-    return res.status(400).json({ error: 'Invalid session' });
+    res.json({
+      verified: true,
+      credentialType: credentialType,
+      credentialSubject: decodedVc.credentialSubject
+    });
+  } catch (error) {
+    console.error('Verification error:', error);
+    res.status(400).json({ verified: false, error: error.message });
   }
-  res.json(sessions[sessionId].authorizationRequest);
-});
-
-app.post('/present', async (req, res) => {
-  const { vp_token, presentation_submission } = req.body;
-  const sessionId = presentation_submission.definition_id;
-
-  if (!sessions[sessionId]) {
-    return res.status(400).json({ error: 'Invalid session' });
-  }
-
-  const verificationResult = await verifyPresentation(vp_token, sessions[sessionId]);
-
-  sessions[sessionId] = {
-    ...sessions[sessionId],
-    status: 'completed',
-    ...verificationResult
-  };
-
-  res.json({ message: 'Presentation received and verified', isValid: verificationResult.isValid });
-});
-
-app.get('/verify-status/:sessionId', (req, res) => {
-  const { sessionId } = req.params;
-
-  if (!sessions[sessionId]) {
-    return res.status(400).json({ error: 'Invalid session' });
-  }
-
-  res.json(sessions[sessionId]);
 });
 
 app.listen(port, () => {
-  console.log(`Verifier server running on port ${port}`);
+  console.log(`Verifier backend running on http://localhost:${port}`);
 });

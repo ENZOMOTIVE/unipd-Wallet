@@ -8,7 +8,7 @@ const port = 3002;
 
 app.use(express.json());
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3003']
+  origin: ['http://localhost:3000', 'http://localhost:3006']
 }));
 
 app.use((req, res, next) => {

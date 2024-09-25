@@ -3,6 +3,7 @@ import { QrReader } from 'react-qr-reader';
 import { jwtDecode } from 'jwt-decode';
 import axios from 'axios';
 import './wallet.css';
+import { SignJWT } from 'jose';
 
 const FIXED_PUBLIC_KEY = '1234';
 
@@ -10,10 +11,14 @@ function Wallet() {
   const [credentials, setCredentials] = useState([]);
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState(null);
-  const [scannedOffer, setScannedOffer] = useState(null);
+  const [scannedData, setScannedData] = useState(null);
   const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
   const [issuerInfo, setIssuerInfo] = useState('');
   const [expandedCredential, setExpandedCredential] = useState(null);
+  const [scanMode, setScanMode] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
+  const [inputMethod, setInputMethod] = useState('qr');
+  const [manualInput, setManualInput] = useState('');
 
   useEffect(() => {
     const storedCredentials = JSON.parse(localStorage.getItem('credentials')) || [];
@@ -24,36 +29,51 @@ function Wallet() {
     if (result) {
       console.log('QR code scanned:', result);
       setIsScanning(false);
+      processInput(result.text);
+    }
+  };
+
+  const handleManualSubmit = () => {
+    if (manualInput.trim()) {
+      processInput(manualInput);
+    } else {
+      setError('Please enter valid data before submitting.');
+    }
+  };
+
+  const processInput = (inputData) => {
+    try {
+      let parsedData;
       try {
-        const credentialOffer = JSON.parse(result.text);
-        console.log('Parsed credential offer:', credentialOffer);
-        setScannedOffer(credentialOffer);
-        setIssuerInfo(credentialOffer.credential_issuer);
-        setIsConfirmationModalOpen(true);
-      } catch (error) {
-        console.error('Error processing QR code:', error);
-        setError('Failed to process QR code. Please try again.');
+        parsedData = JSON.parse(inputData);
+      } catch {
+        parsedData = jwtDecode(inputData);
       }
+      console.log('Parsed input data:', parsedData);
+      setScannedData(parsedData);
+      if (scanMode === 'issuance') {
+        setIssuerInfo(parsedData.credential_issuer || 'Unknown Issuer');
+      }
+      setIsConfirmationModalOpen(true);
+      setError(null);
+    } catch (error) {
+      console.error('Error processing input:', error);
+      setError('Failed to process input. Please ensure it\'s valid JSON or JWT.');
     }
   };
 
   const handleConfirmation = async (confirmed) => {
     setIsConfirmationModalOpen(false);
     if (confirmed) {
-      await processCredentialOffer(scannedOffer);
+      if (scanMode === 'issuance') {
+        await processCredentialOffer(scannedData);
+      } else if (scanMode === 'presentation') {
+        await handlePresentationRequest(scannedData);
+      }
     }
-    setScannedOffer(null);
-  };
-
-  const verifyProof = (credential) => {
-    if (!credential.proof) {
-      return false;
-    }
-    const { proof, ...credentialWithoutProof } = credential;
-    const calculatedProof = crypto.createHmac('sha256', FIXED_PUBLIC_KEY)
-      .update(JSON.stringify(credentialWithoutProof))
-      .digest('hex');
-    return calculatedProof === proof.proofValue;
+    setScannedData(null);
+    setScanMode(null);
+    setManualInput('');
   };
 
   const processCredentialOffer = async (credentialOffer) => {
@@ -96,11 +116,89 @@ function Wallet() {
         return updatedCredentials;
       });
 
+      setSuccessMessage('Credential successfully issued and stored.');
       setError(null);
     } catch (error) {
       console.error('Error in credential issuance:', error.response || error);
       setError(error.response?.data?.error || error.message || 'Failed to issue credential. Please try again.');
     }
+  };
+
+  const handlePresentationRequest = async (request) => {
+    try {
+      console.log('Received presentation request:', request);
+      const { presentation_definition, client_id, nonce, state } = request;
+  
+      if (!presentation_definition || !client_id || !nonce || !state) {
+        throw new Error('Invalid presentation request: missing required fields');
+      }
+  
+      const matchingCredential = credentials.find(cred => {
+        const decodedCred = jwtDecode(cred);
+        return presentation_definition.input_descriptors.some(descriptor =>
+          decodedCred.type.includes(descriptor.name)
+        );
+      });
+  
+      if (!matchingCredential) {
+        throw new Error('No matching credential found');
+      }
+  
+      console.log('Matching credential found:', matchingCredential);
+  
+      const vpToken = {
+        iss: 'self',
+        aud: client_id,
+        nonce: nonce,
+        vp: {
+          '@context': ['https://www.w3.org/2018/credentials/v1'],
+          type: ['VerifiablePresentation'],
+          verifiableCredential: [matchingCredential]
+        }
+      };
+  
+      console.log('Created VP token payload:', vpToken);
+  
+      // Sign the VP token
+      const signedVpToken = await signVpToken(vpToken);
+  
+      console.log('Sending presentation to:', client_id);
+      const response = await axios.post(client_id, {
+        vp_token: signedVpToken,
+        state: state
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+  
+      console.log('Presentation response:', response.data);
+      setSuccessMessage('Credential successfully presented to the verifier.');
+      setError(null);
+    } catch (error) {
+      console.error('Error in credential presentation:', error);
+      if (error.response) {
+        console.error('Response data:', error.response.data);
+        console.error('Response status:', error.response.status);
+        console.error('Response headers:', error.response.headers);
+      }
+      setError(error.message || 'Failed to present credential. Please try again.');
+    }
+  };
+  
+  // Function to sign the VP token
+  const signVpToken = async (vpToken) => {
+    // In a real-world scenario, you would use a proper key pair for signing
+    // For this example, we'll use a dummy key
+    const secretKey = new TextEncoder().encode('your-secret-key');
+  
+    const jwt = await new SignJWT(vpToken)
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('1h')
+      .sign(secretKey);
+  
+    return jwt;
   };
 
   const deleteCredential = (index) => {
@@ -190,24 +288,69 @@ function Wallet() {
   return (
     <div className="wallet-container">
       <header className="wallet-header">
+        <h1>Wallet</h1>
       </header>
       <main className="wallet-content">
-        {!isScanning && (
-          <button onClick={() => setIsScanning(true)} className="scan-button">Scan QR Code</button>
+        <div className="input-method-toggle">
+          <button 
+            onClick={() => setInputMethod('qr')} 
+            className={inputMethod === 'qr' ? 'active' : ''}
+          >
+            QR Scan
+          </button>
+          <button 
+            onClick={() => setInputMethod('manual')} 
+            className={inputMethod === 'manual' ? 'active' : ''}
+          >
+            Manual Input
+          </button>
+        </div>
+        
+        {inputMethod === 'qr' ? (
+          <div className="scan-buttons">
+            <button onClick={() => { setIsScanning(true); setScanMode('issuance'); }} className="scan-button">
+              Scan for Credential Issuance
+            </button>
+            <button onClick={() => { setIsScanning(true); setScanMode('presentation'); }} className="scan-button">
+              Scan for Credential Presentation
+            </button>
+            {isScanning && (
+              <QrReader
+                onResult={handleScan}
+                constraints={{ facingMode: 'environment' }}
+                className="qr-reader"
+              />
+            )}
+          </div>
+        ) : (
+          <div className="manual-input">
+            <textarea
+              value={manualInput}
+              onChange={(e) => setManualInput(e.target.value)}
+              placeholder="Enter credential offer or presentation request (JSON or JWT)"
+              rows="6"
+              className="manual-input-textarea"
+            />
+            <div className="manual-input-buttons">
+              <button onClick={() => { setScanMode('issuance'); handleManualSubmit(); }} className="submit-button">
+                Submit for Issuance
+              </button>
+              <button onClick={() => { setScanMode('presentation'); handleManualSubmit(); }} className="submit-button">
+                Submit for Presentation
+              </button>
+            </div>
+          </div>
         )}
-        {isScanning && (
-          <QrReader
-            onResult={handleScan}
-            constraints={{ facingMode: 'environment' }}
-            className="qr-reader"
-          />
-        )}
+
         {error && <p className="error-message">{error}</p>}
+        {successMessage && <p className="success-message">{successMessage}</p>}
+        
         <div className="credentials-list">
+          <h2>Your Credentials</h2>
           {credentials.length === 0 ? (
             <div className="empty-state">
               <div className="empty-state-icon">📂</div>
-              <p>No credentials yet. Scan a QR code to add a credential.</p>
+              <p>No credentials yet. Scan a QR code or enter data manually to add a credential.</p>
             </div>
           ) : (
             credentials.map((jwtCredential, index) => renderCredentialCard(jwtCredential, index))
@@ -217,8 +360,12 @@ function Wallet() {
       {isConfirmationModalOpen && (
         <div className="modal">
           <div className="modal-content">
-            <h2>Confirm Credential Reception</h2>
-            <p>Do you want to receive a credential from {issuerInfo}?</p>
+            <h2>Confirm Action</h2>
+            <p>
+              {scanMode === 'issuance' 
+                ? `Do you want to receive a credential from ${issuerInfo}?`
+                : 'Do you want to present your credential to the verifier?'}
+            </p>
             <div className="modal-buttons">
               <button onClick={() => handleConfirmation(true)}>Yes</button>
               <button onClick={() => handleConfirmation(false)}>No</button>
@@ -233,7 +380,6 @@ function Wallet() {
           </div>
         </div>
       )}
-      
     </div>
   );
 }
