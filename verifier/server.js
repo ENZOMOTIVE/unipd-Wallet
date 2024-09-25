@@ -24,6 +24,7 @@ const verifierKeyPair = crypto.generateKeyPairSync('ed25519');
 const verifierDid = `did:example:verifier${uuidv4()}`;
 
 const activeRequests = new Map();
+let lastVerificationResult = null;
 
 app.get('/jwks', (req, res) => {
   const jwk = jose.exportJWK(verifierKeyPair.publicKey);
@@ -111,14 +112,25 @@ app.post('/callback', async (req, res) => {
       throw new Error('Invalid credential type');
     }
 
-    res.json({
+    lastVerificationResult = {
       verified: true,
       credentialType: credentialType,
       credentialSubject: decodedVc.credentialSubject
-    });
+    };
+
+    res.json(lastVerificationResult);
   } catch (error) {
     console.error('Verification error:', error);
-    res.status(400).json({ verified: false, error: error.message });
+    lastVerificationResult = { verified: false, error: error.message };
+    res.status(400).json(lastVerificationResult);
+  }
+});
+
+app.get('/verification-status', (req, res) => {
+  if (lastVerificationResult) {
+    res.json(lastVerificationResult);
+  } else {
+    res.json({ status: 'No verification result available' });
   }
 });
 

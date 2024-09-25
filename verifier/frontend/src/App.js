@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import axios from 'axios';
 import './App.css';
@@ -17,6 +17,16 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [copySuccess, setCopySuccess] = useState('');
+
+  useEffect(() => {
+    const checkStatus = setInterval(() => {
+      if (qrCodeData) {
+        checkVerificationStatus();
+      }
+    }, 5000); // Check every 5 seconds
+
+    return () => clearInterval(checkStatus);
+  }, [qrCodeData]);
 
   const generateCredentialRequest = async () => {
     if (!selectedCredential) {
@@ -43,17 +53,11 @@ function App() {
   };
 
   const checkVerificationStatus = async () => {
-    setIsLoading(true);
-    setError('');
-
     try {
       const response = await axios.get('http://localhost:3006/verification-status');
       setVerificationResult(response.data);
     } catch (error) {
       console.error('Error checking verification status:', error);
-      setError('Failed to check verification status. Please try again.');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -67,6 +71,17 @@ function App() {
         console.error('Failed to copy text:', err);
         setError('Failed to copy QR Code data.');
       });
+  };
+
+  const renderCredentialSubject = (subject) => {
+    return (
+      <div className="credential-subject">
+        <h3>Credential Subject:</h3>
+        {Object.entries(subject).map(([key, value]) => (
+          <p key={key}><strong>{key}:</strong> {value}</p>
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -98,13 +113,6 @@ function App() {
           >
             {isLoading ? 'Generating...' : 'Generate Credential Request'}
           </button>
-          <button
-            onClick={checkVerificationStatus}
-            disabled={isLoading}
-            className="secondary-button"
-          >
-            Check Verification Status
-          </button>
         </div>
 
         {error && <p className="error-message">{error}</p>}
@@ -121,7 +129,15 @@ function App() {
         {verificationResult && (
           <div className="verification-result">
             <h2>Verification Result:</h2>
-            <pre>{JSON.stringify(verificationResult, null, 2)}</pre>
+            {verificationResult.verified ? (
+              <>
+                <p className="success-message">Credential verified successfully!</p>
+                <p><strong>Credential Type:</strong> {verificationResult.credentialType}</p>
+                {renderCredentialSubject(verificationResult.credentialSubject)}
+              </>
+            ) : (
+              <p className="error-message">Verification failed: {verificationResult.error || 'Unknown error'}</p>
+            )}
           </div>
         )}
       </main>
