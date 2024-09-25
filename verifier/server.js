@@ -7,8 +7,9 @@ const crypto = require('crypto');
 const app = express();
 const port = 3006;
 
+
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3004', 'http://localhost:3005'],
+  origin: ['http://localhost:3000', 'http://localhost:3004', 'http://localhost:3005','http://localhost:3003' ],
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
