@@ -10,7 +10,7 @@ const credentialTypes = {
   'ResidenceCertificate': ['name', 'address', 'issueDate', 'validUntil']
 };
 
-function App() {
+export default function App() {
   const [selectedCredential, setSelectedCredential] = useState('');
   const [qrCodeData, setQrCodeData] = useState('');
   const [verificationResult, setVerificationResult] = useState(null);
@@ -87,7 +87,7 @@ function App() {
   return (
     <div className="container">
       <header className="header">
-        <h1>Credential Verifier</h1>
+        <h1>Job Application Portal</h1>
       </header>
       
       <main className="main-content">
@@ -143,10 +143,8 @@ function App() {
       </main>
 
       <footer className="footer">
-        <p>© 2024 Credential Verifier. All rights reserved.</p>
+        <p>© 2024 Job Application Credential Verifier. All rights reserved.</p>
       </footer>
     </div>
   );
 }
-
-export default App;
