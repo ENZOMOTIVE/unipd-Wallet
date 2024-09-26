@@ -9,3 +9,7 @@
 **Backend** To run the backend set up with express.js  : node server.js
 
 **Frontend** To run the frontend set up with React.js : npm start
+
+## Verifaction of Credentials:
+
+## Architectural Diagram
