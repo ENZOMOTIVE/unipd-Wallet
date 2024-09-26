@@ -14,9 +14,9 @@ Issuer frontend: 3000
 
 Wallet backend: 3002
 
-Wallet frontend: 3005
+Wallet frontend: 3003
 
-Verifier backend: 3003
+Verifier backend: 3006
 
 Verifier frontend: 3004
 
