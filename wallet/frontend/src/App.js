@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar/Navbar';
 import Wallet from './components/Wallet/wallet';
-import OID4VP from './components/OID4VP/OID4VP';
+
 import './App.css';
 
 const App = () => {
@@ -13,7 +13,7 @@ const App = () => {
         <main className="main-content">
           <Routes>
             <Route path="/oid4vc" element={<Wallet />} />
-            <Route path="/oid4vp" element={<OID4VP />} />
+           
             <Route path="/" element={<Navigate to="/oid4vc" replace />} />
           </Routes>
         </main>
