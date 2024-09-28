@@ -59,7 +59,10 @@ app.post('/create-offer', async (req, res) => {
   
   const credentialOffer = {
     credential_issuer: `http://localhost:${port}`,
-    credentials: [credentialType],
+    credentials: [{
+      type: credentialType,
+      manifest: `http://localhost:${port}/credential-manifests/${credentialType}`
+    }],
     grants: {
       'urn:ietf:params:oauth:grant-type:pre-authorized_code': {
         'pre-authorized_code': offerId,

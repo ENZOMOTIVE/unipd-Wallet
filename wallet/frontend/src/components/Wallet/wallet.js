@@ -19,6 +19,7 @@ function Wallet() {
   const [successMessage, setSuccessMessage] = useState(null);
   const [inputMethod, setInputMethod] = useState('qr');
   const [manualInput, setManualInput] = useState('');
+  const [credentialName, setCredentialName] = useState('');
 
   useEffect(() => {
     const storedCredentials = JSON.parse(localStorage.getItem('credentials')) || [];
@@ -53,6 +54,13 @@ function Wallet() {
       setScannedData(parsedData);
       if (scanMode === 'issuance') {
         setIssuerInfo(parsedData.credential_issuer || 'Unknown Issuer');
+        // Extract credential name from the offer
+        const credentialName = parsedData.credentials[0]?.type || 'Unknown Credential';
+        setCredentialName(credentialName);
+      } else if (scanMode === 'presentation') {
+        // Extract requested credential name from the presentation request
+        const credentialName = parsedData.presentation_definition?.input_descriptors[0]?.name || 'Unknown Credential';
+        setCredentialName(credentialName);
       }
       setIsConfirmationModalOpen(true);
       setError(null);
@@ -358,21 +366,21 @@ function Wallet() {
         </div>
       </main>
       {isConfirmationModalOpen && (
-        <div className="modal">
-          <div className="modal-content">
-            <h2>Confirm Action</h2>
-            <p>
-              {scanMode === 'issuance' 
-                ? `Do you want to receive a credential from ${issuerInfo}?`
-                : 'Do you want to present your credential to the verifier?'}
-            </p>
-            <div className="modal-buttons">
-              <button onClick={() => handleConfirmation(true)}>Yes</button>
-              <button onClick={() => handleConfirmation(false)}>No</button>
-            </div>
-          </div>
-        </div>
-      )}
+  <div className="modal">
+    <div className="modal-content">
+      <h2>Confirm Action</h2>
+      <p>
+        {scanMode === 'issuance' 
+          ? `Do you want to receive a "${credentialName}" credential from ${issuerInfo}?`
+          : `Do you want to present your "${credentialName}" credential to the verifier?`}
+      </p>
+      <div className="modal-buttons">
+        <button onClick={() => handleConfirmation(true)}>Yes</button>
+        <button onClick={() => handleConfirmation(false)}>No</button>
+      </div>
+    </div>
+  </div>
+)}
       {expandedCredential !== null && (
         <div className="modal">
           <div className="modal-content expanded-credential-modal">
