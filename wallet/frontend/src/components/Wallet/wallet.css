@@ -277,3 +277,88 @@
     width: 95%;
   }
 }
+
+/** Button styling**/
+/* Add these styles to your existing CSS file */
+
+.input-method-toggle {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.input-method-toggle button {
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  font-weight: bold;
+  border: 2px solid #0056b3;
+  background-color: #ffffff;
+  color: #0056b3;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.input-method-toggle button:first-child {
+  border-top-left-radius: 5px;
+  border-bottom-left-radius: 5px;
+}
+
+.input-method-toggle button:last-child {
+  border-top-right-radius: 5px;
+  border-bottom-right-radius: 5px;
+}
+
+.input-method-toggle button.active {
+  background-color: #0056b3;
+  color: #ffffff;
+}
+
+.input-method-toggle button:hover {
+  background-color: #004494;
+  color: #ffffff;
+}
+
+/* Update existing styles for scan buttons */
+.scan-button {
+  display: block;
+  width: 100%;
+  padding: 1rem;
+  background-color: #ffd700;
+  color: #0056b3;
+  border: none;
+  border-radius: 10px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.scan-button:hover {
+  background-color: #ffcc00;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Add styles for the wallet header */
+.wallet-header {
+  background-color: #0056b3;
+  color: #ffffff;
+  padding: 1rem;
+  text-align: center;
+}
+
+.wallet-header h1 {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.star-rating {
+  display: flex;
+  justify-content: center;
+  color: #ffd700;
+  font-size: 1.5rem;
+}

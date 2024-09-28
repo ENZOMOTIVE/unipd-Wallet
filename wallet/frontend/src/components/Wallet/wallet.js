@@ -295,41 +295,45 @@ function Wallet() {
 
   return (
     <div className="wallet-container">
-      <header className="wallet-header">
-        <h1>Wallet</h1>
-      </header>
-      <main className="wallet-content">
-        <div className="input-method-toggle">
-          <button 
-            onClick={() => setInputMethod('qr')} 
-            className={inputMethod === 'qr' ? 'active' : ''}
-          >
-            QR Scan
+    <header className="wallet-header">
+      <h1>USER WALLET</h1>
+      <div className="star-rating">
+        {'★'.repeat(5)}
+      </div>
+    </header>
+    <main className="wallet-content">
+      <h2>Wallet</h2>
+      <div className="input-method-toggle">
+        <button 
+          onClick={() => setInputMethod('qr')} 
+          className={inputMethod === 'qr' ? 'active' : ''}
+        >
+          QR Scan
+        </button>
+        <button 
+          onClick={() => setInputMethod('manual')} 
+          className={inputMethod === 'manual' ? 'active' : ''}
+        >
+          Manual Input
+        </button>
+      </div>
+      
+      {inputMethod === 'qr' ? (
+        <div>
+          <button onClick={() => { setIsScanning(true); setScanMode('issuance'); }} className="scan-button">
+            Scan for Credential Issuance
           </button>
-          <button 
-            onClick={() => setInputMethod('manual')} 
-            className={inputMethod === 'manual' ? 'active' : ''}
-          >
-            Manual Input
+          <button onClick={() => { setIsScanning(true); setScanMode('presentation'); }} className="scan-button">
+            Scan for Credential Presentation
           </button>
+          {isScanning && (
+            <QrReader
+              onResult={handleScan}
+              constraints={{ facingMode: 'environment' }}
+              className="qr-reader"
+            />
+          )}
         </div>
-        
-        {inputMethod === 'qr' ? (
-          <div className="scan-buttons">
-            <button onClick={() => { setIsScanning(true); setScanMode('issuance'); }} className="scan-button">
-              Scan for Credential Issuance
-            </button>
-            <button onClick={() => { setIsScanning(true); setScanMode('presentation'); }} className="scan-button">
-              Scan for Credential Presentation
-            </button>
-            {isScanning && (
-              <QrReader
-                onResult={handleScan}
-                constraints={{ facingMode: 'environment' }}
-                className="qr-reader"
-              />
-            )}
-          </div>
         ) : (
           <div className="manual-input">
             <textarea
