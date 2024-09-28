@@ -295,14 +295,9 @@ function Wallet() {
 
   return (
     <div className="wallet-container">
-    <header className="wallet-header">
-      <h1>USER WALLET</h1>
-      <div className="star-rating">
-        {'★'.repeat(5)}
-      </div>
-    </header>
+   
     <main className="wallet-content">
-      <h2>Wallet</h2>
+    
       <div className="input-method-toggle">
         <button 
           onClick={() => setInputMethod('qr')} 
