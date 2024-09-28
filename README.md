@@ -1,6 +1,6 @@
 ## This is an Issuer-Holder-Verifier Model
 Working Video
-[Watch the video](./Docs/Working.mp4)
+[Watch the video](https://github.com/ENZOMOTIVE/unipd-Wallet/blob/main/Docs/Working.mp4)
 
 
 ## Wallet
