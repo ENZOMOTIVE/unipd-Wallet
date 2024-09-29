@@ -1,12 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import './Issuer.css';
 
-// The backend API deployed on render
-// const base_url= "https://unipd-wallet.onrender.com";
-
-//The backend when hosted on local server
-const local_server="http://localhost:3001";
+const local_server = "http://localhost:3001";
 
 const credentialTypes = {
   'UniversityDegree': ['name', 'degreeType', 'university', 'graduationDate'],
@@ -22,6 +18,23 @@ export default function Issuer() {
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [logs, setLogs] = useState([]);
+  const wsRef = useRef(null);
+
+  useEffect(() => {
+    wsRef.current = new WebSocket('ws://localhost:3001');
+
+    wsRef.current.onmessage = (event) => {
+      const log = JSON.parse(event.data);
+      setLogs((prevLogs) => [...prevLogs, log]);
+    };
+
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (credentialType) {
@@ -116,6 +129,14 @@ export default function Issuer() {
             <img src={qrCodeUrl} alt="Credential Offer QR Code" className="qr-code" />
           </div>
         )}
+      </div>
+      <div className="logs-container">
+        <h2>Backend Logs</h2>
+        <div className="logs-content">
+          {logs.map((log, index) => (
+            <p key={index}>{`${log.timestamp}: ${log.message}`}</p>
+          ))}
+        </div>
       </div>
     </div>
   );
