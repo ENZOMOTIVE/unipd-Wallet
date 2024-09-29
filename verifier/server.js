@@ -7,9 +7,8 @@ const crypto = require('crypto');
 const app = express();
 const port = 3006;
 
-
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3004', 'http://localhost:3005','http://localhost:3003' ],
+  origin: ['http://localhost:3000', 'http://localhost:3004', 'http://localhost:3005', 'http://localhost:3003'],
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -26,6 +25,16 @@ const verifierDid = `did:example:verifier${uuidv4()}`;
 
 const activeRequests = new Map();
 let lastVerificationResult = null;
+
+const credentialTypes = {
+  'UniversityDegree': ['name', 'degreeType', 'university', 'graduationDate'],
+  'DriverLicense': ['name', 'licenseNumber', 'issueDate', 'expiryDate'],
+  'PID': ['name', 'idNumber', 'dateOfBirth', 'address'],
+  'ResidenceCertificate': ['name', 'address', 'issueDate', 'validUntil'],
+  'Passport': ['name', 'passportNumber', 'nationality', 'dateOfBirth', 'expiryDate'],
+  'Diploma': ['name', 'institution', 'degree', 'graduationDate'],
+  'Transcript': ['name', 'institution', 'gpa']
+};
 
 app.get('/jwks', (req, res) => {
   const jwk = jose.exportJWK(verifierKeyPair.publicKey);
@@ -111,6 +120,14 @@ app.post('/callback', async (req, res) => {
     const decodedVc = jose.decodeJwt(vc);
     if (!decodedVc.type.includes(credentialType)) {
       throw new Error('Invalid credential type');
+    }
+
+    // Verify all required fields are present
+    const requiredFields = credentialTypes[credentialType];
+    for (const field of requiredFields) {
+      if (!(field in decodedVc.credentialSubject)) {
+        throw new Error(`Missing required field: ${field}`);
+      }
     }
 
     lastVerificationResult = {

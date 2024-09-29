@@ -7,7 +7,10 @@ const credentialTypes = {
   'UniversityDegree': ['name', 'degreeType', 'university', 'graduationDate'],
   'DriverLicense': ['name', 'licenseNumber', 'issueDate', 'expiryDate'],
   'PID': ['name', 'idNumber', 'dateOfBirth', 'address'],
-  'ResidenceCertificate': ['name', 'address', 'issueDate', 'validUntil']
+  'ResidenceCertificate': ['name', 'address', 'issueDate', 'validUntil'],
+  'Passport': ['name', 'passportNumber', 'nationality', 'dateOfBirth', 'expiryDate'],
+  'Diploma': ['name', 'institution', 'degree', 'graduationDate'],
+  'Transcript': ['name', 'institution', 'gpa']
 };
 
 export default function App() {
@@ -78,7 +81,7 @@ export default function App() {
       <div className="credential-subject">
         <h3>Credential Subject:</h3>
         {Object.entries(subject).map(([key, value]) => (
-          <p key={key}><strong>{key}:</strong> {value}</p>
+          <p key={key}><strong>{key}:</strong> {typeof value === 'object' ? JSON.stringify(value) : value}</p>
         ))}
       </div>
     );
@@ -87,7 +90,7 @@ export default function App() {
   return (
     <div className="container">
       <header className="header">
-        <h1>Job Application Portal</h1>
+        <h1>Credential Verifier</h1>
       </header>
       
       <main className="main-content">
@@ -143,7 +146,7 @@ export default function App() {
       </main>
 
       <footer className="footer">
-        <p>© 2024 Job Application Credential Verifier. All rights reserved.</p>
+        <p>© 2024 Credential Verifier. All rights reserved.</p>
       </footer>
     </div>
   );
