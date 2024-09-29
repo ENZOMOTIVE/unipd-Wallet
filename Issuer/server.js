@@ -57,6 +57,17 @@ const FIXED_PUBLIC_KEY = '1234';
 const issuedTokens = new Set();
 const credentialOffers = new Map();
 
+// Credential types
+const credentialTypes = {
+  'UniversityDegree': ['name', 'degreeType', 'university', 'graduationDate'],
+  'DriverLicense': ['name', 'licenseNumber', 'issueDate', 'expiryDate'],
+  'PID': ['name', 'idNumber', 'dateOfBirth', 'address'],
+  'ResidenceCertificate': ['name', 'address', 'issueDate', 'validUntil'],
+  'Passport': ['name', 'passportNumber', 'nationality', 'dateOfBirth', 'expiryDate'],
+  'Diploma': ['name', 'institution', 'degree', 'graduationDate'],
+  'Transcript': ['name', 'institution', 'courses', 'gpa']
+};
+
 // OpenID Configuration endpoint
 app.get('/.well-known/openid-credential-issuer', (req, res) => {
   res.json({
@@ -66,12 +77,10 @@ app.get('/.well-known/openid-credential-issuer', (req, res) => {
     credential_endpoint: `http://localhost:${port}/credential`,
     jwks_uri: `http://localhost:${port}/jwks`,
     credential_issuer: `http://localhost:${port}`,
-    credentials_supported: [
-      {
-        format: 'jwt_vc',
-        types: ['VerifiableCredential', 'UniversityDegreeCredential']
-      }
-    ]
+    credentials_supported: Object.keys(credentialTypes).map(type => ({
+      format: 'jwt_vc',
+      types: ['VerifiableCredential', type]
+    }))
   });
   broadcastLog('OpenID Configuration requested');
 });
@@ -89,7 +98,7 @@ app.get('/jwks', (req, res) => {
 app.post('/create-offer', async (req, res) => {
   const { userId, credentialType, credentialFields } = req.body;
   const offerId = uuidv4();
-  
+
   const credentialOffer = {
     credential_issuer: `http://localhost:${port}`,
     credentials: [{
@@ -188,6 +197,86 @@ app.post('/credential', async (req, res) => {
         ...credentialFields
       }
     };
+
+    // Adjust credential subject based on credential type
+    switch (credentialType) {
+      case 'UniversityDegree':
+        credentialPayload.credentialSubject = {
+          id: `did:example:${userId}`,
+          degree: {
+            type: credentialFields.degreeType,
+            name: credentialFields.name
+          },
+          university: credentialFields.university,
+          graduationDate: credentialFields.graduationDate
+        };
+        break;
+      case 'DriverLicense':
+        credentialPayload.credentialSubject = {
+          id: `did:example:${userId}`,
+          name: credentialFields.name,
+          licenseNumber: credentialFields.licenseNumber,
+          expiryDate: credentialFields.expiryDate
+        };
+        break;
+      case 'PID':
+        credentialPayload.credentialSubject = {
+          id: `did:example:${userId}`,
+          name: credentialFields.name,
+          idNumber: credentialFields.idNumber,
+          dateOfBirth: credentialFields.dateOfBirth,
+          address: credentialFields.address
+        };
+        break;
+      case 'ResidenceCertificate':
+        credentialPayload.credentialSubject = {
+          id: `did:example:${userId}`,
+          name: credentialFields.name,
+          address: credentialFields.address,
+          issueDate: credentialFields.issueDate,
+          validUntil: credentialFields.validUntil
+        };
+        break;
+      case 'Passport':
+        credentialPayload.credentialSubject = {
+          id: `did:example:${userId}`,
+          name: credentialFields.name,
+          passportNumber: credentialFields.passportNumber,
+          nationality: credentialFields.nationality,
+          dateOfBirth: credentialFields.dateOfBirth,
+          expiryDate: credentialFields.expiryDate
+        };
+        break;
+      case 'Diploma':
+        credentialPayload.credentialSubject = {
+          id: `did:example:${userId}`,
+          name: credentialFields.name,
+          degree: {
+            type: credentialFields.degree,
+            name: credentialFields.degree
+          },
+          institution: credentialFields.institution,
+          graduationDate: credentialFields.graduationDate
+        };
+        break;
+      case 'Transcript':
+        try {
+          credentialPayload.credentialSubject = {
+            id: `did:example:${userId}`,
+            name: credentialFields.name,
+            institution: credentialFields.institution,
+            courses: JSON.parse(credentialFields.courses),
+            gpa: credentialFields.gpa
+          };
+        } catch (error) {
+          console.error('Error parsing courses JSON:', error);
+          return res.status(400).json({ error: 'Invalid courses data' });
+        }
+        break;
+      default:
+        // For other types, use the credentialFields as is
+        break;
+    }
 
     const proofValue = crypto.createHmac('sha256', FIXED_PUBLIC_KEY)
                              .update(JSON.stringify(credentialPayload))

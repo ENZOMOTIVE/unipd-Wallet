@@ -8,13 +8,17 @@ const credentialTypes = {
   'UniversityDegree': ['name', 'degreeType', 'university', 'graduationDate'],
   'DriverLicense': ['name', 'licenseNumber', 'issueDate', 'expiryDate'],
   'PID': ['name', 'idNumber', 'dateOfBirth', 'address'],
-  'ResidenceCertificate': ['name', 'address', 'issueDate', 'validUntil']
+  'ResidenceCertificate': ['name', 'address', 'issueDate', 'validUntil'],
+  'Passport': ['name', 'passportNumber', 'nationality', 'dateOfBirth', 'expiryDate'],
+  'Diploma': ['name', 'institution', 'degree', 'graduationDate'],
+  'Transcript': ['name', 'institution', 'gpa']
 };
 
 export default function Issuer() {
   const [userId, setUserId] = useState('');
   const [credentialType, setCredentialType] = useState('');
   const [credentialFields, setCredentialFields] = useState({});
+  const [courses, setCourses] = useState([{ name: '', grade: '' }]);
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -50,15 +54,36 @@ export default function Issuer() {
     setCredentialFields(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleCourseChange = (index, field, value) => {
+    const newCourses = [...courses];
+    newCourses[index][field] = value;
+    setCourses(newCourses);
+  };
+
+  const addCourse = () => {
+    setCourses([...courses, { name: '', grade: '' }]);
+  };
+
+  const removeCourse = (index) => {
+    const newCourses = courses.filter((_, i) => i !== index);
+    setCourses(newCourses);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const response = await axios.post(`${local_server}/create-offer`, {
+      let submissionData = {
         userId,
         credentialType,
-        credentialFields
-      });
+        credentialFields: { ...credentialFields }
+      };
+
+      if (credentialType === 'Transcript') {
+        submissionData.credentialFields.courses = JSON.stringify(courses);
+      }
+
+      const response = await axios.post(`${local_server}/create-offer`, submissionData);
       if (response.data.qrCodeUrl) {
         setQrCodeUrl(response.data.qrCodeUrl);
         setError(null);
@@ -116,6 +141,31 @@ export default function Issuer() {
                   />
                 </div>
               ))}
+              {credentialType === 'Transcript' && (
+                <div className="courses-section">
+                  <h3>Courses</h3>
+                  {courses.map((course, index) => (
+                    <div key={index} className="course-entry">
+                      <input
+                        type="text"
+                        placeholder="Course Name"
+                        value={course.name}
+                        onChange={(e) => handleCourseChange(index, 'name', e.target.value)}
+                        required
+                      />
+                      <input
+                        type="text"
+                        placeholder="Grade"
+                        value={course.grade}
+                        onChange={(e) => handleCourseChange(index, 'grade', e.target.value)}
+                        required
+                      />
+                      <button type="button" onClick={() => removeCourse(index)}>Remove</button>
+                    </div>
+                  ))}
+                  <button type="button" onClick={addCourse}>Add Course</button>
+                </div>
+              )}
             </div>
           )}
           <button type="submit" className="submit-button" disabled={isLoading}>
