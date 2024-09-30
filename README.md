@@ -12,8 +12,6 @@ https://github.com/user-attachments/assets/2ef8cdb9-17b0-463b-868a-2a9db86db4dc
 ![Wallet-Verifier](https://github.com/user-attachments/assets/7f34fa72-8eec-4e6b-a85c-004dba549549)
 
 
-
-
 ## Wallet
 This is the Wallet link deploed on vercel:  [Wallet vercel](https://unipd-wallet.vercel.app)
 ## Issuer
@@ -67,4 +65,13 @@ const credentialTypes = {
   'ResidenceCertificate': ['name', 'address', 'issueDate', 'validUntil']
 
 };
+
+## How to run 
+TO run the frontend the command is:
+
+npm start
+
+To run the backend the command is:
+
+node server.js
 
