@@ -7,7 +7,8 @@ https://github.com/user-attachments/assets/2ef8cdb9-17b0-463b-868a-2a9db86db4dc
 
 ## Workflow Diagram
 
-![Diagram](https://github.com/user-attachments/assets/07264891-60df-44f8-8eef-e808364b5eaf)
+![Diagram](https://github.com/user-attachments/assets/6c8a30a5-acad-4c4d-ba46-39724ca1db3b)
+
 
 
 ## Issuer - Wallet (OID4VC)
