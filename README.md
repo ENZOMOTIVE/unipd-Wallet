@@ -5,6 +5,11 @@ Working Video
 
 https://github.com/user-attachments/assets/2ef8cdb9-17b0-463b-868a-2a9db86db4dc
 
+## Workflow Diagram
+
+![Diagram](https://github.com/user-attachments/assets/07264891-60df-44f8-8eef-e808364b5eaf)
+
+
 ## Issuer - Wallet (OID4VC)
 ![Issuer_wallet](https://github.com/user-attachments/assets/1910ed5a-b5d0-4cc4-b565-a2991f9b9a85)
 
