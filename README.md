@@ -16,6 +16,7 @@ https://github.com/user-attachments/assets/1dd8910e-d19d-4517-b6ec-a69aecb4d02d
 
 
 ## Workflow Diagram
+![Refined systeArch](https://github.com/user-attachments/assets/3c373711-1ca2-46b5-a928-3d6c0654d675)
 
 ![Diagram](https://github.com/user-attachments/assets/6c8a30a5-acad-4c4d-ba46-39724ca1db3b)
 
