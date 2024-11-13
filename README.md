@@ -1,5 +1,10 @@
 ## This is an Issuer-Holder-Verifier Model
 
+## Project Description
+This project addresses the inefficiencies in traditional credential verification methods, particularly in recruitment and admissions, where manual processes can lead to delays, errors, and risks of fraudulent information. The solution leverages blockchain technology to securely store credential information in the issuer’s part of the system, enhancing trust and traceability in the verification process. By adopting the OpenID for Verifiable Presentations (OID4VP) and OpenID for Verifiable Credential Issuance (OID4VCI) standards, this system enables users to manage and share verified digital credentials seamlessly via a secure wallet application. Using the ED25519 encryption algorithm ensures that sensitive information remains encrypted and protected, making it nearly impossible for unauthorized parties to tamper with or misuse the data.
+
+Through this approach, applicants can instantly share verifiable credentials with organizations, simply by scanning a QR code and confirming the action, eliminating the need for time-consuming manual checks. Organizations benefit from receiving secure, tamper-proof credentials directly from the blockchain, streamlining the verification process and significantly reducing administrative load and errors. This solution creates a faster, more reliable, and fraud-resistant credential exchange ecosystem, improving the overall experience for applicants and organizations alike while building a foundation of trust in digital credentialing.
+
 ## Working Video
 
 Frontend Showcase
