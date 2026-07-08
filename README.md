@@ -1,3 +1,8 @@
+## Project Tags
+
+- `Full Stack`
+- `Protocol`
+
 ## This is an Issuer-Holder-Verifier Model
 
 ## Project Description
@@ -96,4 +101,3 @@ npm start
 To run the backend the command is:
 
 node server.js
-
